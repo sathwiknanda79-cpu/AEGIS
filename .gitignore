@@ -1,0 +1,9 @@
+results/
+.venv/
+__pycache__/
+*.pyc
+*.log
+streamlit.err
+streamlit.log
+.mypy_cache/
+.ruff_cache/
