@@ -114,7 +114,7 @@ with brand_col:
     if LOGO_PATH.exists():
         st.image(str(LOGO_PATH), width=150)
 with title_col:
-    st.markdown(f"<div class='aegis-title'>{APP_NAME}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='aegis-title'>AEGI<span style='color:#be1c1c;'>S</span></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='aegis-subtitle'>{APP_SUBTITLE}</div>", unsafe_allow_html=True)
 
 command_available = sherlock_command() is not None
