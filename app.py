@@ -12,6 +12,7 @@ APP_NAME = "AEGIS"
 APP_SUBTITLE = "Social Media Username Intelligence Using OSINT"
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "results"
+LOGO_PATH = BASE_DIR / "assets" / "aegis-logo.png"
 
 
 def sherlock_command() -> str | None:
@@ -108,8 +109,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(f"<div class='aegis-title'>{APP_NAME}</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='aegis-subtitle'>{APP_SUBTITLE}</div>", unsafe_allow_html=True)
+brand_col, title_col = st.columns([0.22, 0.78], vertical_alignment="center")
+with brand_col:
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), width=150)
+with title_col:
+    st.markdown(f"<div class='aegis-title'>{APP_NAME}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='aegis-subtitle'>{APP_SUBTITLE}</div>", unsafe_allow_html=True)
 
 command_available = sherlock_command() is not None
 

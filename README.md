@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/aegis-banner.png" alt="AEGIS banner" width="100%">
+</p>
+
 # AEGIS
 
 AEGIS is a cybersecurity OSINT mini-project for discovering public social media profiles linked to a username.
