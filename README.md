@@ -17,8 +17,28 @@ AEGIS: Social Media Username Intelligence Using OSINT
 - Search one username across public websites
 - Search multiple usernames in one session
 - Save investigation outputs inside the `results` folder
+- Verify discovered links and flag false positives
 - Keep a clean project structure for report and presentation work
 - Uses Sherlock as the underlying OSINT lookup tool
+
+## Result Verification
+
+Some OSINT username tools can return false positives. This happens when a website response looks like a valid profile to the scanner, but the page later opens as `404`, `not found`, blocked, or rate limited in a browser.
+
+AEGIS includes a verification step after each scan. It re-checks discovered URLs and creates:
+
+```text
+verified_links.txt
+verified_links.csv
+```
+
+Possible verdicts include:
+
+- `reachable`
+- `not found`
+- `blocked or rate limited`
+- `unreachable`
+- `needs manual check`
 
 ## Requirements
 

@@ -68,6 +68,13 @@ AEGIS can generate:
 - `.txt` result files
 - `.csv` result files
 - `.xlsx` result files
+- verified link reports
+
+## False Positives and Verification
+
+OSINT username scanners may sometimes show false positives because websites change their response behavior, block automated requests, redirect pages, or return pages that look valid to a scanner but open as "not found" in a browser.
+
+To reduce confusion, AEGIS performs an extra verification step. After Sherlock finds possible profile URLs, AEGIS re-checks those URLs and saves `verified_links.txt` and `verified_links.csv` with a verdict such as `reachable`, `not found`, `blocked or rate limited`, or `needs manual check`.
 
 ## Ethical Use
 

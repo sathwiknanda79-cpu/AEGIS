@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import re
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
+import requests
 import streamlit as st
 
 
@@ -13,6 +16,7 @@ APP_SUBTITLE = "Social Media Username Intelligence Using OSINT"
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "results"
 LOGO_PATH = BASE_DIR / "assets" / "aegis-logo.png"
+USER_AGENT = "AEGIS OSINT verifier/1.0"
 
 
 def sherlock_command() -> str | None:
@@ -32,7 +36,59 @@ def list_result_files() -> list[Path]:
     )
 
 
-def run_scan(usernames: list[str], output_format: str, print_found: bool) -> tuple[int, str, str, Path]:
+def extract_urls(text: str) -> list[str]:
+    urls = re.findall(r"https?://[^\s,]+", text)
+    return list(dict.fromkeys(url.rstrip(").]") for url in urls))
+
+
+def verify_url(url: str) -> tuple[str, int | None, str]:
+    try:
+        response = requests.get(
+            url,
+            allow_redirects=True,
+            headers={"User-Agent": USER_AGENT},
+            timeout=12,
+        )
+    except requests.RequestException as error:
+        return url, None, f"unreachable: {error.__class__.__name__}"
+
+    if response.status_code == 404:
+        return url, response.status_code, "not found"
+    if response.status_code in {401, 403, 429}:
+        return url, response.status_code, "blocked or rate limited"
+    if 200 <= response.status_code < 400:
+        parsed = urlparse(str(response.url))
+        if parsed.netloc:
+            return url, response.status_code, "reachable"
+    return url, response.status_code, "needs manual check"
+
+
+def write_verified_results(session_dir: Path, urls: list[str]) -> Path | None:
+    if not urls:
+        return None
+
+    rows = [verify_url(url) for url in urls]
+    text_path = session_dir / "verified_links.txt"
+    csv_path = session_dir / "verified_links.csv"
+
+    text_lines = ["url | status_code | verdict"]
+    csv_lines = ["url,status_code,verdict"]
+    for url, status_code, verdict in rows:
+        code_text = "" if status_code is None else str(status_code)
+        text_lines.append(f"{url} | {code_text} | {verdict}")
+        csv_lines.append(f'"{url}","{code_text}","{verdict}"')
+
+    text_path.write_text("\n".join(text_lines), encoding="utf-8")
+    csv_path.write_text("\n".join(csv_lines), encoding="utf-8")
+    return text_path
+
+
+def run_scan(
+    usernames: list[str],
+    output_format: str,
+    print_found: bool,
+    verify_links: bool,
+) -> tuple[int, str, str, Path, Path | None]:
     command_path = sherlock_command()
     if command_path is None:
         return 1, "", "Sherlock is not installed inside AEGIS.", RESULTS_DIR
@@ -61,7 +117,15 @@ def run_scan(usernames: list[str], output_format: str, print_found: bool) -> tup
         check=False,
     )
 
-    return completed.returncode, completed.stdout, completed.stderr, session_dir
+    verified_path = None
+    if verify_links:
+        urls = extract_urls(completed.stdout)
+        for result_file in session_dir.glob("*.txt"):
+            urls.extend(extract_urls(result_file.read_text(encoding="utf-8", errors="replace")))
+        urls = list(dict.fromkeys(urls))
+        verified_path = write_verified_results(session_dir, urls)
+
+    return completed.returncode, completed.stdout, completed.stderr, session_dir, verified_path
 
 
 st.set_page_config(
@@ -145,6 +209,7 @@ with scan_col:
         default="Text",
     )
     print_found = st.checkbox("Show only found accounts in terminal output", value=True)
+    verify_links = st.checkbox("Verify links after scan", value=True)
 
     start_scan = st.button("Start Scan", type="primary", use_container_width=True)
 
@@ -156,7 +221,12 @@ with scan_col:
             st.error("Sherlock is not available. Install project requirements first.")
         else:
             with st.spinner("Scanning public websites..."):
-                code, stdout, stderr, session_dir = run_scan(usernames, output_format, print_found)
+                code, stdout, stderr, session_dir, verified_path = run_scan(
+                    usernames,
+                    output_format,
+                    print_found,
+                    verify_links,
+                )
 
             if code == 0:
                 st.success(f"Scan completed. Results saved in {session_dir.name}.")
@@ -167,6 +237,8 @@ with scan_col:
                 st.code(stdout, language="text")
             if stderr:
                 st.code(stderr, language="text")
+            if verified_path:
+                st.info(f"Verified link report created: {verified_path.name}")
 
 with results_col:
     st.subheader("Saved Results")
